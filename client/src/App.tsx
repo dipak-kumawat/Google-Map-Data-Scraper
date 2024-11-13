@@ -1,10 +1,13 @@
 // import React from 'react'
 
+import MapScraper from "./pages/MapScraper";
+
 const App = () => {
   return (
-    <h1 className="text-3xl font-bold underline">
-    Hello world!
-  </h1>  )
-}
+    <>
+      <MapScraper />
+    </>
+  );
+};
 
-export default App
+export default App;
