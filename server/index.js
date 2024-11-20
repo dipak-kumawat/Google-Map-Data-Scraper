@@ -1,40 +1,38 @@
-import puppeteer from "puppeteer";
+import express from "express";
+import { scrapeWikipedia } from "./WikipediaScraper.js";
+import cors from "cors";
 
-(async () => {
-  // Launch the browser and open a new page
-  const browser = await puppeteer.launch({ headless: false });
-  const page = await browser.newPage();
+const corsOptions = {
+  origin: "http://localhost:5173",
+  credentials: true,
+  optionSuccessStatus: 200,
+};
 
-  // Navigate to Wikipedia
-  await page.goto("https://wikipedia.org/");
+const app = express();
+app.use(cors()); // Enable CORS for all routes
+const PORT = 3000;
 
-  // Set screen size
-  await page.setViewport({ width: 1080, height: 1024 });
+// Middleware to parse JSON
+app.use(express.json());
 
-  // Type into the search box
-  await page.type("#searchInput", "Automation");
+// API endpoint
+app.post("/scrape", async (req, res) => {
+  const { query } = req.body;
 
-  // Click on the search button
-  const searchResultSelector = ".pure-button.pure-button-primary-progressive";
-  await page.waitForSelector(searchResultSelector);
-  await page.click(searchResultSelector);
+  if (!query) {
+    return res.status(400).json({ error: "Query parameter is required" });
+  }
 
-  // Wait for the page to load and scrape the main content
-  const contentSelector = ".mw-parser-output p";
-  await page.waitForSelector(contentSelector);
+  try {
+    const content = await scrapeWikipedia(query);
+    console.log(content)
+    res.status(200).json({ query, content });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-  // Extract the text of the first paragraph
-  const content = await page.evaluate(() => {
-    const paragraphs = document.querySelectorAll(".mw-parser-output p");
-    return Array.from(paragraphs)
-      .map((p) => p.innerText.trim()) // Extract and clean up text
-      .filter((text) => text.length > 0); // Filter out empty paragraphs
-  });
-
-  // Log the passage
-  console.log("Scraped Content:");
-  console.log(content.join("\n\n")); // Join paragraphs with double line breaks
-
-  // Close the browser
-  await browser.close();
-})();
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
